@@ -1,7 +1,7 @@
-# Sites Monitoring Utility
+# Мониторинг сайтов
 
-[TODO. There will be project description]
+Проверка доступности сайтов и проплаченности доменного имени.
 
-# Project Goals
+# Цели проект
 
-The code is written for educational purposes. Training course for web-developers - [DEVMAN.org](https://devman.org)
+Тренировочный код для проекта - [DEVMAN.org](https://devman.org)
