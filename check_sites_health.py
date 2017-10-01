@@ -24,7 +24,7 @@ def get_domain_expiration_date(url):
     domain_info = whois.whois(domain_name)
     exp_date = domain_info.expiration_date[0] if type(domain_info.expiration_date) is list else domain_info.expiration_date
 
-    if exp_date - relativedelta(moths=1) > datetime.now():
+    if exp_date - relativedelta(months=1) > datetime.now():
         return "Домен оплачен до %s" % exp_date.strftime('%d-%d-%Y')
     else:
         return "Внимание!!! Нужно оплатить домен до %s" % exp_date.strftime('%d-%d-%Y')
