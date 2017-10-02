@@ -33,7 +33,7 @@ def get_domain_expiration_date(url):
     if type(domain_info.expiration_date) is list:
         exp_date = domain_info.expiration_date[0]
     else:
-        domain_info.expiration_date
+        exp_date = domain_info.expiration_date
 
     if exp_date - relativedelta(months=1) > datetime.now():
         return True, "Домен оплачен до %s" % exp_date.strftime('%d-%d-%Y')
@@ -48,9 +48,7 @@ def format_output(url):
     output = """{url}
              {stat_res}
              {domain_res}
-    """
-    output.format(url=url, stat_res=status_result,
-                  domain_res=domain_result[1])
+    """.format(url=url, stat_res=status_result, domain_res=domain_result[1])
     return output
 
 
