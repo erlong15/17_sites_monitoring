@@ -1,9 +1,16 @@
-import sys
+import argparse
 from urllib.parse import urlparse
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import requests
 import whois
+
+phrases = {'STATUS_OK': 'Все отлично',
+           'STATUS_BAD': 'Внимание!!! Что то не так',
+           'INCORRECT_ADDR': 'Некорректный адрес',
+           'UNKNOWN_DOMAIN': 'несуществующие домен',
+           'DOMAIN_PAID': 'Домен оплачен до',
+           'SHOULD_PAID': 'Внимание!!! Нужно оплатить домен до '}
 
 
 def load_urls4check(path):
@@ -11,47 +18,79 @@ def load_urls4check(path):
         return [url for url in (line.strip() for line in url_file) if url]
 
 
-def is_server_respond_with_200(url):
-    request = requests.get(url)
-    if request.ok:
-        return "Все отлично, статус %d" % request.status_code
-    else:
-        return "Внимание!!! Что то не так, статус %d" % request.status_code
+def get_server_status_code(url):
+    response = requests.get(url)
+    return response.status_code
 
 
-def get_domain_expiration_date(url):
+def get_domain_name(url):
     parsed = urlparse(url)
-    if not bool(parsed.netloc):
-        return False, "Некорректный адрес"
+    return parsed.hostname
 
-    domain_name = parsed.hostname
-    domain_info = whois.whois(domain_name)
 
-    if domain_info.status is None:
-        return False, "Несуществующий домен"
+def get_domain_info(in_domain_name):
+    exp_date = None
+    if in_domain_name:
+        domain_info = whois.whois(in_domain_name)
+        if domain_info.status is not None:
+            if type(domain_info.expiration_date) is list:
+                exp_date = domain_info.expiration_date[0]
+            else:
+                exp_date = domain_info.expiration_date
 
-    if type(domain_info.expiration_date) is list:
-        exp_date = domain_info.expiration_date[0]
+    return exp_date
+
+
+def format_status_phrase(url):
+    status_code = get_server_status_code(url)
+    status_tmpl = '{phrase}, статус {status}'
+    phrase = phrases['STATUS_OK'] if status_code == 200 \
+        else phrases['STATUS_BAD']
+
+    return status_tmpl.format(phrase=phrase, status=status_code)
+
+
+def format_domain_phrase(exp_date):
+    domain_tmpl = '{phrase} {date}'
+    date_cond = exp_date - relativedelta(months=1) > datetime.now()
+    phrase = phrases['DOMAIN_PAID'] if date_cond else phrases['SHOULD_PAID']
+
+    return domain_tmpl.format(phrase=phrase,
+                              date=exp_date.strftime('%d-%d-%Y'))
+
+
+def format_output(url, in_domain_name, in_exp_date):
+    status_phrase = ''
+    if not in_domain_name:
+        domain_phrase = phrases['INCORRECT_ADDR']
     else:
-        exp_date = domain_info.expiration_date
+        if in_exp_date:
+            domain_phrase = format_domain_phrase(in_exp_date)
+            status_phrase = format_status_phrase(url)
+        else:
+            domain_phrase = phrases['UNKNOWN_DOMAIN']
 
-    if exp_date - relativedelta(months=1) > datetime.now():
-        return True, "Домен оплачен до %s" % exp_date.strftime('%d-%d-%Y')
-    else:
-        return True, "Внимание!!! Нужно оплатить домен до %s" % \
-                      exp_date.strftime('%d-%d-%Y')
-
-
-def format_output(url):
-    domain_result = get_domain_expiration_date(url)
-    status_result = is_server_respond_with_200(url) if domain_result[0] else ''
     output = """{url}
-             {stat_res}
+             {status_res}
              {domain_res}
-    """.format(url=url, stat_res=status_result, domain_res=domain_result[1])
+    """.format(url=url,
+               status_res=status_phrase,
+               domain_res=domain_phrase)
     return output
 
 
+def get_args():
+    parser = argparse.ArgumentParser(description='Site/domain monitor.')
+    parser.add_argument('-f', '--urlfile',
+                        help='File with list of URLs',
+                        required=True)
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == '__main__':
-    for url in load_urls4check(sys.argv[1]):
-        print(format_output(url))
+    args = get_args()
+    for check_url in load_urls4check(args.urlfile):
+        domain_name = get_domain_name(check_url)
+        exp_date = get_domain_info(domain_name)
+        print(format_output(check_url, domain_name, exp_date))

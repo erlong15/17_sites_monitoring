@@ -15,28 +15,44 @@ pip install -r requrements.txt
 ```
 
 Формат файла с адресами - текстовый файл, где в каждой новой строке отдельный адрес, пустые строки игнорируются
+Для мониторинга в скрипт параметром передается файл со списком адресов
+```
+usage: check_sites_health.py [-h] -f URLFILE
 
+Site/domain monitor.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f URLFILE, --urlfile URLFILE
+                        File with list of URLs
+
+```
 
 
 # Пример использования
 
 ```
-[lucky@lucky 17_sites_monitoring]$ python3 check_sites_health.py test_urls 
+python3 check_sites_health.py -f urls 
+http://otus.ru
+             Все отлично, статус 200
+             Домен оплачен до 15-15-2018
+    
+http://devman.org
+             Все отлично, статус 200
+             Домен оплачен до 28-28-2018
+    
 http://dbadmins.ru
              Все отлично, статус 200
              Домен оплачен до 03-03-2018
+    
+fcuking site
              
-https://devman.org
-             Все отлично, статус 200
-             Домен оплачен до 28-28-2018
-             
-https://otus.ru
-             Все отлично, статус 200
-             Домен оплачен до 15-15-2018
-             
+             Некорректный адрес
+    
 http://nevedoma.hnja
              
-             Несуществующий домен
+             несуществующие домен
+
 ```
 
 # Цели проекта
