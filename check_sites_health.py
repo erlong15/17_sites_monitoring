@@ -56,7 +56,7 @@ def format_domain_phrase(exp_date):
     phrase = phrases['DOMAIN_PAID'] if date_cond else phrases['SHOULD_PAID']
 
     return domain_tmpl.format(phrase=phrase,
-                              date=exp_date.strftime('%d-%d-%Y'))
+                              date=exp_date.strftime('%d-%m-%Y'))
 
 
 def format_output(url, in_domain_name, in_exp_date):
