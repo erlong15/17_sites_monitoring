@@ -5,12 +5,15 @@ from dateutil.relativedelta import relativedelta
 import requests
 import whois
 
-phrases = {'STATUS_OK': 'Все отлично',
-           'STATUS_BAD': 'Внимание!!! Что то не так',
-           'INCORRECT_ADDR': 'Некорректный адрес',
-           'UNKNOWN_DOMAIN': 'несуществующие домен',
-           'DOMAIN_PAID': 'Домен оплачен до',
-           'SHOULD_PAID': 'Внимание!!! Нужно оплатить домен до '}
+
+phrases = {
+    'STATUS_OK': 'Все отлично',
+    'STATUS_BAD': 'Внимание!!! Что то не так',
+    'INCORRECT_ADDR': 'Некорректный адрес',
+    'UNKNOWN_DOMAIN': 'несуществующие домен',
+    'DOMAIN_PAID': 'Домен оплачен до',
+    'SHOULD_PAY': 'Внимание!!! Нужно оплатить домен до '
+}
 
 
 def load_urls4check(path):
@@ -28,7 +31,7 @@ def get_domain_name(url):
     return parsed.hostname
 
 
-def get_domain_info(in_domain_name):
+def get_domain_exp_date(in_domain_name):
     exp_date = None
     if in_domain_name:
         domain_info = whois.whois(in_domain_name)
@@ -41,8 +44,7 @@ def get_domain_info(in_domain_name):
     return exp_date
 
 
-def format_status_phrase(url):
-    status_code = get_server_status_code(url)
+def format_status_phrase(status_code):
     status_tmpl = '{phrase}, статус {status}'
     phrase = phrases['STATUS_OK'] if status_code == 200 \
         else phrases['STATUS_BAD']
@@ -53,20 +55,20 @@ def format_status_phrase(url):
 def format_domain_phrase(exp_date):
     domain_tmpl = '{phrase} {date}'
     date_cond = exp_date - relativedelta(months=1) > datetime.now()
-    phrase = phrases['DOMAIN_PAID'] if date_cond else phrases['SHOULD_PAID']
+    phrase = phrases['DOMAIN_PAID'] if date_cond else phrases['SHOULD_PAY']
 
     return domain_tmpl.format(phrase=phrase,
                               date=exp_date.strftime('%d-%m-%Y'))
 
 
-def format_output(url, in_domain_name, in_exp_date):
+def format_output(url, status_code, domain_name, exp_date):
     status_phrase = ''
-    if not in_domain_name:
+    if not domain_name:
         domain_phrase = phrases['INCORRECT_ADDR']
     else:
-        if in_exp_date:
-            domain_phrase = format_domain_phrase(in_exp_date)
-            status_phrase = format_status_phrase(url)
+        if status_code:
+            domain_phrase = format_domain_phrase(exp_date)
+            status_phrase = format_status_phrase(status_code)
         else:
             domain_phrase = phrases['UNKNOWN_DOMAIN']
 
@@ -88,9 +90,14 @@ def get_args():
     return args
 
 
-if __name__ == '__main__':
+def main():
     args = get_args()
     for check_url in load_urls4check(args.urlfile):
         domain_name = get_domain_name(check_url)
-        exp_date = get_domain_info(domain_name)
-        print(format_output(check_url, domain_name, exp_date))
+        exp_date = get_domain_exp_date(domain_name)
+        status_code = get_server_status_code(check_url) if exp_date else None
+        print(format_output(check_url, status_code, domain_name, exp_date))
+
+
+if __name__ == '__main__':
+    main()
